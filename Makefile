@@ -1,6 +1,3 @@
-PROTO_FILES  = $(wildcard types/*.proto)
-PROTOC_FILES = $(patsubst %.proto,%.pb.go, $(PROTO_FILES))
-
 BINS       := akash akashd
 IMAGE_BINS := _build/akash _build/akashd
 
@@ -86,10 +83,7 @@ deps-tidy:
 	$(GO) mod tidy
 
 devdeps-install:
-	$(GO) install github.com/gogo/protobuf/protoc-gen-gogo
 	$(GO) install github.com/vektra/mockery/.../
-	$(GO) install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	$(GO) install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
 test-integration: $(BINS)
 	(cd _integration && make clean run)
@@ -97,26 +91,10 @@ test-integration: $(BINS)
 integrationdeps-install:
 	(cd _integration && make deps-install)
 
-gentypes: $(PROTOC_FILES)
-
 kubetypes:
 	vendor/k8s.io/code-generator/generate-groups.sh all \
   	github.com/ovrclk/akash/pkg/client github.com/ovrclk/akash/pkg/apis \
   	akash.network:v1
-
-%.pb.go: %.proto
-	protoc -I. \
-		-Ivendor -Ivendor/github.com/gogo/protobuf/protobuf \
-		-Ivendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-		--gogo_out=plugins=grpc:. $<
-	protoc -I. \
-		-Ivendor -Ivendor/github.com/gogo/protobuf/protobuf \
-		-Ivendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-		--grpc-gateway_out=logtostderr=true:. $<
-	protoc -I. \
-		-Ivendor -Ivendor/github.com/gogo/protobuf/protobuf \
-		-Ivendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-		--swagger_out=logtostderr=true:. $<
 
 mocks:
 	mockery -case=underscore -dir query                 -output query/mocks                 -name Client
@@ -156,5 +134,5 @@ clean:
 	gofmt \
 	docs \
 	clean \
-	kubetypes gentypes $(PROTO_FILES) \
+	kubetypes \
 	install
